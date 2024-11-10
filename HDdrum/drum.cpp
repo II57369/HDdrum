@@ -142,7 +142,7 @@ int main(){
     long long lbaAddress=0;
     char ifloadfromfile; char score[2048*512]={}; int score_length=0;
 	int drvnum, BPM, duration_16th=0;
-	long long CurrentTime=0;
+	long long dTime=0, StartTime=0;
 	
 	printf("drive number:"); scanf("%d", &drvnum); getchar();
 	MaxLBA = GetMaxLBAForDisk(drvnum);
@@ -194,38 +194,44 @@ int main(){
 	}
 	
 	printf("go!\n");
+	StartTime = GetTickCountINT();
+	dTime = 0;
 	redo:
+	if(GetTickCountINT() - StartTime >= duration_16th/2){
+		StartTime = GetTickCountINT();
+		printf("Jam happened.\n");
+	}
 	for(int i=0; i<score_length; i++)
 	{
-		CurrentTime = GetTickCountINT();
+		//CurrentTime = GetTickCountINT();
 		switch(score[i])
 		{
 			case '#':
 				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
 				if(echo)	putchar('#');
-				while(GetTickCountINT() - CurrentTime < duration_16th*4){}
+				dTime += duration_16th*4;
 				break;
 			case '*':
 				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
 				if(echo)	putchar('*');
-				while(GetTickCountINT() - CurrentTime < duration_16th*2){}
+				dTime += duration_16th*2;
 				break;
 			case '-':
 				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
 				if(echo)	putchar('-');
-				while(GetTickCountINT() - CurrentTime < duration_16th*1){}
+				dTime += duration_16th*1;
 				break;
 			case 'M':
 				if(echo)	putchar('M');
-				while(GetTickCountINT() - CurrentTime < duration_16th*4){}
+				dTime += duration_16th*4;
 				break;
 			case 'N':
 				if(echo)	putchar('N');
-				while(GetTickCountINT() - CurrentTime < duration_16th*2){}
+				dTime += duration_16th*2;
 				break;
 			case 'n':
 				if(echo)	putchar('n');
-				while(GetTickCountINT() - CurrentTime < duration_16th*1){}
+				dTime += duration_16th*1;
 				break;
 			case '.':
 				if(i==0){
@@ -236,27 +242,27 @@ int main(){
 				{
 					case '#':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th*2){}
+						dTime += duration_16th*2;
 						break;
 					case '*':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th*1){}
+						dTime += duration_16th*1;
 						break;
 					case '-':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th/2){}
+						dTime += duration_16th/2;
 						break;
 					case 'M':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th*2){}
+						dTime += duration_16th*2;
 						break;
 					case 'N':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th*1){}
+						dTime += duration_16th*1;
 						break;
 					case 'n':
 						if(echo)	putchar('.');
-						while(GetTickCountINT() - CurrentTime < duration_16th/2){}
+						dTime += duration_16th/2;
 						break;
 					default:
 						printf("ERROR: single dot!");
@@ -265,13 +271,22 @@ int main(){
 				break;
 			default:
 				if(echo)	putchar(' ');
-				break;
+				continue;  // legal?
 		}
+		
+		if(GetTickCountINT() - StartTime >= dTime){
+			printf("\nJam happened.\n");
+			StartTime = GetTickCountINT();
+			dTime = 0;
+		}
+		while(GetTickCountINT() - StartTime < dTime){}
 	}
 	
 	if(ifloadfromfile == 'Y' || ifloadfromfile == 'y')
 	{
     	//freopen("score.txt","r+",stdin);
+		StartTime = GetTickCountINT();
+		dTime = 0;
 		if(gets(score)){
 			//freopen("CON", "r", stdin);
 			score_length = strlen(score);
