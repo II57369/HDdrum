@@ -18,11 +18,24 @@
         } \
     } while(0)
 
-#define BEAT(hDevice, lbaAddress, buffer, bytesRead, off_set) \
+// hard beat
+#define A_BEAT(hDevice, lbaAddress, buffer, bytesRead, off_set) \
 	do { \
-		lbaAddress = CALCULATE_LBA((InnerSide ? 0 : 1), MaxLBA, off_set); \
-		READ_DISK_DATA(hDevice, lbaAddress, buffer, bytesRead); \
-		InnerSide = !InnerSide; \
+		for(int j=0; j<2; j++){ \
+			InnerSide = !InnerSide; \
+			lbaAddress = CALCULATE_LBA( (InnerSide ? (MoreInner? 1 : 1-1.0/(rate+1) ) : (MoreInner? 1.0/(rate+1) : 0) ) , MaxLBA, off_set); \
+			READ_DISK_DATA(hDevice, lbaAddress, buffer, bytesRead); \
+		} \
+	} while(0)
+	
+// weak beat
+#define B_BEAT(hDevice, lbaAddress, buffer, bytesRead, off_set) \
+	do { \
+		for(int j=0; j<2; j++){ \
+			MoreInner = !MoreInner; \
+			lbaAddress = CALCULATE_LBA( (InnerSide ? (MoreInner? 1 : 1-1.0/(rate+1) ) : (MoreInner? 1.0/(rate+1) : 0) ) , MaxLBA, off_set); \
+			READ_DISK_DATA(hDevice, lbaAddress, buffer, bytesRead); \
+		} \
 	} while(0)
 
 // by 1157369
@@ -33,16 +46,10 @@
 using namespace std;
 
 bool InnerSide = 1;
+bool MoreInner = 1;
+int rate = 49; // A_BEAT, B_BEAT 跨越的扇区之比 
 long long MaxLBA = -1;
 bool echo = 1;
-//long long block_size = 32*512;
-//long long timeout = 50;
-//long long refresh_time_interval = 1000;
-
-// 调试 
-//long long start_LBA=00000;
-//bool input = 1; 
-// char buffer[2146793727];
 
 // 检测是否为管理员身份运行此程序 
 bool IsRunAsAdministrator() {
@@ -142,7 +149,7 @@ int main(){
     long long lbaAddress=0;
     char ifloadfromfile; char score[2048*512]={}; int score_length=0;
 	int drvnum, BPM, duration_16th=0;
-	long long dTime=0, StartTime=0;
+	long long dTime=0, StartTime=0, LastBarTime=0;
 	
 	printf("drive number:"); scanf("%d", &drvnum); getchar();
 	MaxLBA = GetMaxLBAForDisk(drvnum);
@@ -161,12 +168,14 @@ int main(){
     //random_device rd;   // non-deterministic generator
     //mt19937_64 gen(rd());  // to seed mersenne twister.
     mt19937_64 gen(time(0));  // to seed mersenne twister.
-    uniform_int_distribution<long long> dist(0, MaxLBA/100); // distribute results between 1 and 6 inclusive.
+    uniform_int_distribution<long long> dist(0, MaxLBA/1000); // distribute results between 1 and 6 inclusive.
     
 	// start 
-    BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+    A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
     // for(int i=0; i<100; i++)	BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
     putchar('\n');
+    printf("~O = combo, O = any note\n");
+    printf("z  = weak quarter note		x  = weak eighth note		c  = weak sixteenth note\n");
     printf("#  = quarter note		*  = eighth note		-  = sixteenth note\n");
     printf("#. = dotted quarter note	*. = dotted eighth note		-. = dotted sixteenth note\n");
     printf("M  = quarter rest		N  = eighth rest		n  = sixteenth rest\n");
@@ -174,7 +183,7 @@ int main(){
     printf("others = pass\n\n");
     
     printf("load score from score.txt?(Y/N)"); ifloadfromfile=getchar();
-    if(ifloadfromfile == 'Y' || ifloadfromfile == 'y')
+    if( ifloadfromfile != 'N' && ifloadfromfile != 'n')
     {
     	freopen("score.txt","r",stdin);
     	scanf("%d", &BPM); getchar();
@@ -197,6 +206,9 @@ int main(){
 	StartTime = GetTickCountINT();
 	dTime = 0;
 	redo:
+	bool is_combo=0;
+	int barCount=0;
+	LastBarTime=0;
 	if(GetTickCountINT() - StartTime >= duration_16th/2){
 		StartTime = GetTickCountINT();
 		printf("Jam happened.\n");
@@ -204,34 +216,53 @@ int main(){
 	for(int i=0; i<score_length; i++)
 	{
 		//CurrentTime = GetTickCountINT();
+		int current_dtime=0;
 		switch(score[i])
 		{
+			case '~':
+				is_combo=1;
+				continue;  // legal?
 			case '#':
-				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	putchar('#');
-				dTime += duration_16th*4;
+				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<4; k++) putchar('O');
+				dTime += duration_16th*4; current_dtime = duration_16th*4;
 				break;
 			case '*':
-				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	putchar('*');
-				dTime += duration_16th*2;
+				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<2; k++) putchar('O');
+				dTime += duration_16th*2; current_dtime = duration_16th*2;
 				break;
 			case '-':
-				BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	putchar('-');
-				dTime += duration_16th*1;
+				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<1; k++) putchar('O');
+				dTime += duration_16th*1; current_dtime = duration_16th*1;
 				break;
 			case 'M':
-				if(echo)	putchar('M');
-				dTime += duration_16th*4;
+				if(echo)	for(int k=0; k<4; k++) putchar('.');
+				dTime += duration_16th*4; current_dtime = duration_16th*4;
 				break;
 			case 'N':
-				if(echo)	putchar('N');
-				dTime += duration_16th*2;
+				if(echo)	for(int k=0; k<2; k++) putchar('.');
+				dTime += duration_16th*2; current_dtime = duration_16th*2;
 				break;
 			case 'n':
-				if(echo)	putchar('n');
-				dTime += duration_16th*1;
+				if(echo)	for(int k=0; k<1; k++) putchar('.');
+				dTime += duration_16th*1; current_dtime = duration_16th*1;
+				break;
+			case 'z':
+				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<4; k++) putchar('o');
+				dTime += duration_16th*4; current_dtime = duration_16th*4;
+				break;
+			case 'x':
+				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<2; k++) putchar('o');
+				dTime += duration_16th*2; current_dtime = duration_16th*2;
+				break;
+			case 'c':
+				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+				if(echo)	for(int k=0; k<1; k++) putchar('o');
+				dTime += duration_16th*1; current_dtime = duration_16th*1;
 				break;
 			case '.':
 				if(i==0){
@@ -241,28 +272,22 @@ int main(){
 				switch(score[i-1])
 				{
 					case '#':
-						if(echo)	putchar('.');
-						dTime += duration_16th*2;
+					case 'M':
+					case 'z':
+						if(echo)	for(int k=0; k<2; k++) putchar('.');
+						dTime += duration_16th*2; current_dtime = duration_16th*2;
 						break;
 					case '*':
-						if(echo)	putchar('.');
-						dTime += duration_16th*1;
+					case 'N':
+					case 'x':
+						if(echo)	for(int k=0; k<1; k++) putchar('.');
+						dTime += duration_16th*1; current_dtime = duration_16th*1;
 						break;
 					case '-':
-						if(echo)	putchar('.');
-						dTime += duration_16th/2;
-						break;
-					case 'M':
-						if(echo)	putchar('.');
-						dTime += duration_16th*2;
-						break;
-					case 'N':
-						if(echo)	putchar('.');
-						dTime += duration_16th*1;
-						break;
 					case 'n':
-						if(echo)	putchar('.');
-						dTime += duration_16th/2;
+					case 'c':
+						if(echo)	putchar(' ');
+						dTime += duration_16th/2; current_dtime = duration_16th/2;
 						break;
 					default:
 						printf("ERROR: single dot!");
@@ -270,19 +295,32 @@ int main(){
 				}
 				break;
 			default:
-				if(echo)	putchar(' ');
+			//	if(echo)	putchar(' ');
 				continue;  // legal?
 		}
 		
+		//if( dTime%(duration_16th*16) < duration_16th ) putchar('|');
+		if( dTime >= LastBarTime+duration_16th*16 - duration_16th/4 ){
+			barCount++;
+			LastBarTime = dTime;
+			putchar('|');
+			if(barCount%2==0)	putchar('\n');
+		}
 		if(GetTickCountINT() - StartTime >= dTime){
 			printf("\nJam happened.\n");
 			StartTime = GetTickCountINT();
 			dTime = 0;
 		}
-		while(GetTickCountINT() - StartTime < dTime){}
+		while(GetTickCountINT() - StartTime < dTime){
+			if(!is_combo) continue;
+			if(score[i+1] != '.' && GetTickCountINT() - StartTime + current_dtime/4 >= dTime ) continue;
+			B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
+		}
+		
+		if(score[i+1] != '.') is_combo = 0;
 	}
 	
-	if(ifloadfromfile == 'Y' || ifloadfromfile == 'y')
+	if(ifloadfromfile != 'N' && ifloadfromfile != 'n')
 	{
     	//freopen("score.txt","r+",stdin);
 		StartTime = GetTickCountINT();

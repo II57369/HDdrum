@@ -1,0 +1,6 @@
+128
+**  
+#--n- M**	**---- N.-**	*--n-* **--n-	N*--n- M**	#--n- M**	**--n-N.-**	*--n-* *--n---	*--n-*#M		
+xcc ncnc xx ccnc	ncx xcc ncn ccccc	xcc ncnc xx ccnc	ncx xcc ncn ccccc	xcc ncnc xx ccnc	ncx xcc ncn ccccc	xcc ncnc xx ccnc	ncx xcc ncn ccccc	
+xcc ncnc xx #	ncx xcc *-- N*	N* ncnc *x cn--	N* N* M --*	N* M # N--	N* -.-.- *-- N*	N* ncnc *x cn-- *.*.* N#cc	
+~#.N~#.N	~#~#~#.N	~*~-~- ~*~-~- ~*~-~- ~*~-~-	~-~-~-~- ~-~-~-~- ~#~#	~#.N ~#.~*	~#.N ~*~-~- ~*~-~-	~#M ~#N~-~-	~#.NM **
