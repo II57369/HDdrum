@@ -120,6 +120,7 @@ DWORDLONG GetMaxLBAForDisk(int diskNumber) {
 
 
 int main(){
+	system("chcp 437");
 	printf("By 1157369\n");
     // 检查是否以管理员权限运行
     if (!IsRunAsAdministrator()) {
@@ -148,7 +149,7 @@ int main(){
     char devicePath[32];
     long long lbaAddress=0;
     char ifloadfromfile; char score[2048*512]={}; int score_length=0;
-	int drvnum, BPM, duration_16th=0;
+	int drvnum, BPM, duration_32th=0;
 	long long dTime=0, StartTime=0, LastBarTime=0;
 	
 	printf("drive number:"); scanf("%d", &drvnum); getchar();
@@ -174,7 +175,7 @@ int main(){
     A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
     // for(int i=0; i<100; i++)	BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
     putchar('\n');
-    printf("~O = combo, O = any note\n");
+    printf("~O = combo, O is any single note\n");
     printf("z  = weak quarter note		x  = weak eighth note		c  = weak sixteenth note\n");
     printf("#  = quarter note		*  = eighth note		-  = sixteenth note\n");
     printf("#. = dotted quarter note	*. = dotted eighth note		-. = dotted sixteenth note\n");
@@ -187,7 +188,7 @@ int main(){
     {
     	freopen("score.txt","r",stdin);
     	scanf("%d", &BPM); getchar();
-    	duration_16th = 60*1000/BPM/4;
+    	duration_32th = 60*1000/BPM/8;
     	//scanf("%s", score);
     	gets(score);
     	score_length = strlen(score);
@@ -196,7 +197,7 @@ int main(){
     else
     {
     	printf("BPM:"); scanf("%d", &BPM); getchar();
-    	duration_16th = 60*1000/BPM/4;
+    	duration_32th = 60*1000/BPM/8;
     	printf("score:"); //scanf("%s", score);
     	gets(score);
     	score_length = strlen(score);
@@ -209,7 +210,7 @@ int main(){
 	bool is_combo=0;
 	int barCount=0;
 	LastBarTime=0;
-	if(GetTickCountINT() - StartTime >= duration_16th/2){
+	if(GetTickCountINT() - StartTime >= duration_32th){
 		StartTime = GetTickCountINT();
 		printf("Jam happened.\n");
 	}
@@ -224,45 +225,63 @@ int main(){
 				continue;  // legal?
 			case '#':
 				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<4; k++) putchar('O');
-				dTime += duration_16th*4; current_dtime = duration_16th*4;
+				if(echo){
+					putchar(0x00DD);
+					for(int k=1; k<8; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*4; current_dtime = duration_32th*2*4;
 				break;
 			case '*':
 				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<2; k++) putchar('O');
-				dTime += duration_16th*2; current_dtime = duration_16th*2;
+				if(echo){
+					putchar(0x00DD);
+					for(int k=1; k<4; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*2; current_dtime = duration_32th*2*2;
 				break;
 			case '-':
 				if(!is_combo) A_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<1; k++) putchar('O');
-				dTime += duration_16th*1; current_dtime = duration_16th*1;
+				if(echo){
+					putchar(0x00DD);
+					for(int k=1; k<2; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*1; current_dtime = duration_32th*2*1;
 				break;
 			case 'M':
-				if(echo)	for(int k=0; k<4; k++) putchar('.');
-				dTime += duration_16th*4; current_dtime = duration_16th*4;
+				if(echo)	for(int k=0; k<8; k++) putchar(' ');
+				dTime += duration_32th*2*4; current_dtime = duration_32th*2*4;
 				break;
 			case 'N':
-				if(echo)	for(int k=0; k<2; k++) putchar('.');
-				dTime += duration_16th*2; current_dtime = duration_16th*2;
+				if(echo)	for(int k=0; k<4; k++) putchar(' ');
+				dTime += duration_32th*2*2; current_dtime = duration_32th*2*2;
 				break;
 			case 'n':
-				if(echo)	for(int k=0; k<1; k++) putchar('.');
-				dTime += duration_16th*1; current_dtime = duration_16th*1;
+				if(echo)	for(int k=0; k<2; k++) putchar(' ');
+				dTime += duration_32th*2*1; current_dtime = duration_32th*2*1;
 				break;
 			case 'z':
 				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<4; k++) putchar('o');
-				dTime += duration_16th*4; current_dtime = duration_16th*4;
+				if(echo){
+					putchar(0x00B1);
+					for(int k=1; k<8; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*4; current_dtime = duration_32th*2*4;
 				break;
 			case 'x':
 				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<2; k++) putchar('o');
-				dTime += duration_16th*2; current_dtime = duration_16th*2;
+				if(echo){
+					putchar(0x00B1);
+					for(int k=1; k<4; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*2; current_dtime = duration_32th*2*2;
 				break;
 			case 'c':
 				if(!is_combo) B_BEAT(hDevice, lbaAddress, buffer, bytesRead,dist(gen));
-				if(echo)	for(int k=0; k<1; k++) putchar('o');
-				dTime += duration_16th*1; current_dtime = duration_16th*1;
+				if(echo){
+					putchar(0x00B1);
+					for(int k=1; k<2; k++) putchar(0x00B0);
+				}
+				dTime += duration_32th*2*1; current_dtime = duration_32th*2*1;
 				break;
 			case '.':
 				if(i==0){
@@ -272,23 +291,33 @@ int main(){
 				switch(score[i-1])
 				{
 					case '#':
-					case 'M':
 					case 'z':
-						if(echo)	for(int k=0; k<2; k++) putchar('.');
-						dTime += duration_16th*2; current_dtime = duration_16th*2;
+						if(echo)	for(int k=0; k<4; k++) putchar(0x00B0);
+						dTime += duration_32th*2*2; current_dtime = duration_32th*2*2;
+						break;
+					case 'M':
+						if(echo)	for(int k=0; k<4; k++) putchar(' ');
+						dTime += duration_32th*2*2; current_dtime = duration_32th*2*2;
 						break;
 					case '*':
-					case 'N':
 					case 'x':
-						if(echo)	for(int k=0; k<1; k++) putchar('.');
-						dTime += duration_16th*1; current_dtime = duration_16th*1;
+						if(echo)	for(int k=0; k<2; k++) putchar(0x00B0);
+						dTime += duration_32th*2*1; current_dtime = duration_32th*2*1;
+						break;
+					case 'N':
+						if(echo)	for(int k=0; k<2; k++) putchar(' ');
+						dTime += duration_32th*2*1; current_dtime = duration_32th*2*1;
 						break;
 					case '-':
-					case 'n':
 					case 'c':
-						if(echo)	putchar(' ');
-						dTime += duration_16th/2; current_dtime = duration_16th/2;
+						if(echo)	for(int k=0; k<1; k++) putchar(0x00B0);
+						dTime += duration_32th; current_dtime = duration_32th;
 						break;
+					case 'n':
+						if(echo)	for(int k=0; k<1; k++) putchar(' ');
+						dTime += duration_32th; current_dtime = duration_32th;
+						break;
+					
 					default:
 						printf("ERROR: single dot!");
 						return 2;
@@ -300,10 +329,10 @@ int main(){
 		}
 		
 		//if( dTime%(duration_16th*16) < duration_16th ) putchar('|');
-		if( dTime >= LastBarTime+duration_16th*16 - duration_16th/4 ){
+		if( dTime >= LastBarTime+duration_32th*2*16 - 0*duration_32th*2/8 ){
 			barCount++;
 			LastBarTime = dTime;
-			putchar('|');
+			putchar(0x00BA); putchar(' ');
 			if(barCount%2==0)	putchar('\n');
 		}
 		if(GetTickCountINT() - StartTime >= dTime){
